@@ -36,11 +36,6 @@ export function UserContextMenu({
             <ContextMenuItem onClick={() => onAction(user, "editInfo")}>
               詳細情報を変更
             </ContextMenuItem>
-            {!isSelf && (
-              <ContextMenuItem onClick={() => onAction(user, "role")}>
-                役割を変更
-              </ContextMenuItem>
-            )}
             <ContextMenuItem onClick={() => onAction(user, "password")}>
               パスワード変更
             </ContextMenuItem>

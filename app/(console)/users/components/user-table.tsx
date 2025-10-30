@@ -277,13 +277,6 @@ export function UserTable({
                       >
                         詳細情報を変更
                       </ContextMenuItem>
-                      {!isSelf && (
-                        <ContextMenuItem
-                          onClick={() => onUserAction(user, "role")}
-                        >
-                          役割を変更
-                        </ContextMenuItem>
-                      )}
                       <ContextMenuItem
                         onClick={() => onUserAction(user, "password")}
                       >

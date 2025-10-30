@@ -10,15 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  Monitor,
-  Smartphone,
-  Tablet,
-  AlertCircle,
-  Trash2,
-} from "lucide-react";
+import { Loader2, Monitor, Smartphone, Tablet, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { admin } from "@/lib/auth-client";
 import { User } from "./user-table";
 
@@ -47,7 +40,6 @@ export function SessionListDialog({
 }: SessionListDialogProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,23 +52,22 @@ export function SessionListDialog({
     if (!user) return;
     try {
       setLoading(true);
-      setError("");
       setSessions([]); // リセット
       const result = await admin.listUserSessions({
         userId: user.id,
       });
-      
+
       if (result.data) {
         // APIレスポンスの構造を確認
         let sessionData: any[] = [];
-        
+
         if (Array.isArray(result.data)) {
           sessionData = result.data;
-        } else if (result.data && typeof result.data === 'object') {
+        } else if (result.data && typeof result.data === "object") {
           // オブジェクトの場合、sessionsプロパティを探す
           sessionData = (result.data as any).sessions || [];
         }
-        
+
         // 配列であることを確認
         if (Array.isArray(sessionData)) {
           setSessions(sessionData as Session[]);
@@ -88,7 +79,7 @@ export function SessionListDialog({
         setSessions([]);
       }
     } catch (err) {
-      setError("セッションの取得に失敗しました");
+      toast.error("セッションの取得に失敗しました");
       console.error("Failed to load sessions:", err);
       setSessions([]);
     } finally {
@@ -99,14 +90,13 @@ export function SessionListDialog({
   const handleRevokeSession = async (sessionToken: string) => {
     try {
       setRevoking(sessionToken);
-      setError("");
       await admin.revokeUserSession({
         sessionToken,
       });
       await loadSessions();
       onSessionRevoked();
     } catch (err) {
-      setError("セッションの取り消しに失敗しました");
+      toast.error("セッションの取り消しに失敗しました");
     } finally {
       setRevoking(null);
     }
@@ -115,7 +105,11 @@ export function SessionListDialog({
   const getDeviceIcon = (userAgent?: string) => {
     if (!userAgent) return <Monitor className="size-4" />;
     const ua = userAgent.toLowerCase();
-    if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) {
+    if (
+      ua.includes("mobile") ||
+      ua.includes("android") ||
+      ua.includes("iphone")
+    ) {
       return <Smartphone className="size-4" />;
     }
     if (ua.includes("tablet") || ua.includes("ipad")) {
@@ -126,22 +120,27 @@ export function SessionListDialog({
 
   const getDeviceInfo = (userAgent?: string) => {
     if (!userAgent) return "不明なデバイス";
-    
+
     // ブラウザ検出
     let browser = "不明なブラウザ";
     if (userAgent.includes("Chrome")) browser = "Chrome";
     else if (userAgent.includes("Firefox")) browser = "Firefox";
     else if (userAgent.includes("Safari")) browser = "Safari";
     else if (userAgent.includes("Edge")) browser = "Edge";
-    
+
     // OS検出
     let os = "";
     if (userAgent.includes("Windows")) os = "Windows";
     else if (userAgent.includes("Mac")) os = "macOS";
     else if (userAgent.includes("Linux")) os = "Linux";
     else if (userAgent.includes("Android")) os = "Android";
-    else if (userAgent.includes("iOS") || userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
-    
+    else if (
+      userAgent.includes("iOS") ||
+      userAgent.includes("iPhone") ||
+      userAgent.includes("iPad")
+    )
+      os = "iOS";
+
     return `${browser}${os ? ` on ${os}` : ""}`;
   };
 
@@ -154,13 +153,6 @@ export function SessionListDialog({
             {user?.name}のアクティブなセッション
           </DialogDescription>
         </DialogHeader>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="size-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -190,11 +182,13 @@ export function SessionListDialog({
                     )}
                     <div className="flex gap-2 text-xs text-muted-foreground">
                       <span>
-                        作成: {new Date(session.createdAt).toLocaleString("ja-JP")}
+                        作成:{" "}
+                        {new Date(session.createdAt).toLocaleString("ja-JP")}
                       </span>
                       <span>•</span>
                       <span>
-                        期限: {new Date(session.expiresAt).toLocaleString("ja-JP")}
+                        期限:{" "}
+                        {new Date(session.expiresAt).toLocaleString("ja-JP")}
                       </span>
                     </div>
                     {new Date(session.expiresAt) < new Date() && (

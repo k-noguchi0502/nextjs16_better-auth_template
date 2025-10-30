@@ -21,8 +21,8 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, CheckCircle2, Shield } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
+import { toast } from "sonner";
 
 interface TotpFormProps {
   onBack: () => void;
@@ -30,15 +30,11 @@ interface TotpFormProps {
 
 export function TotpForm({ onBack }: TotpFormProps) {
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
 
     try {
@@ -48,16 +44,16 @@ export function TotpForm({ onBack }: TotpFormProps) {
       });
 
       if (result.error) {
-        setError(
+        toast.error(
           result.error.message ||
             "認証コードが正しくありません。もう一度お試しください。"
         );
       } else {
-        setSuccess("認証に成功しました");
+        toast.success("認証に成功しました");
         setTimeout(() => router.push("/"), 500);
       }
     } catch (err) {
-      setError("認証中にエラーが発生しました。もう一度お試しください。");
+      toast.error("認証中にエラーが発生しました。もう一度お試しください。");
     } finally {
       setLoading(false);
     }
@@ -77,23 +73,6 @@ export function TotpForm({ onBack }: TotpFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit}>
           <FieldGroup>
-            {error && (
-              <Alert
-                variant="destructive"
-                className="animate-in fade-in-50 slide-in-from-top-2"
-              >
-                <AlertCircle className="size-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert className="border-green-200 bg-green-50 text-green-900 animate-in fade-in-50 slide-in-from-top-2">
-                <CheckCircle2 className="size-4" />
-                <AlertDescription>{success}</AlertDescription>
-              </Alert>
-            )}
-
             <Field>
               <FieldLabel htmlFor="totp">認証コード</FieldLabel>
               <div className="flex justify-center">

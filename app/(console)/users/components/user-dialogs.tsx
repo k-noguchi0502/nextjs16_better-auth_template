@@ -18,7 +18,6 @@ import { Loader2 } from "lucide-react";
 import { User } from "./user-table";
 
 type DialogType =
-  | "role"
   | "password"
   | "disable2fa"
   | "ban"
@@ -34,7 +33,6 @@ interface UserDialogsProps {
   actionLoading: boolean;
   isSelf: boolean;
   onClose: () => void;
-  onRoleChange: () => Promise<void>;
   onPasswordChange: (password: string) => Promise<void>;
   onDisable2FA: () => Promise<void>;
   onBanToggle: () => Promise<void>;
@@ -54,7 +52,6 @@ export function UserDialogs({
   actionLoading,
   isSelf,
   onClose,
-  onRoleChange,
   onPasswordChange,
   onDisable2FA,
   onBanToggle,
@@ -63,12 +60,20 @@ export function UserDialogs({
   onEditInfo,
 }: UserDialogsProps) {
   const [newPassword, setNewPassword] = useState("");
-  const [editName, setEditName] = useState(selectedUser?.name || "");
-  const [editEmail, setEditEmail] = useState(selectedUser?.email || "");
-  const [editRole, setEditRole] = useState<"user" | "admin">(
-    (selectedUser?.role as "user" | "admin") || "user"
-  );
-  const [editBanned, setEditBanned] = useState(selectedUser?.banned ?? false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<"user" | "admin">("user");
+  const [editBanned, setEditBanned] = useState(false);
+
+  // ダイアログが開いたときに現在のユーザーデータをセット
+  const handleEditInfoOpen = (open: boolean) => {
+    if (open && selectedUser && dialogType === "editInfo") {
+      setEditName(selectedUser.name || "");
+      setEditEmail(selectedUser.email || "");
+      setEditRole((selectedUser.role as "user" | "admin") || "user");
+      setEditBanned(selectedUser.banned ?? false);
+    }
+  };
 
   const handleClose = () => {
     setNewPassword("");
@@ -81,41 +86,6 @@ export function UserDialogs({
 
   return (
     <>
-      {/* 役割変更ダイアログ */}
-      <Dialog open={dialogType === "role"} onOpenChange={handleClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>役割を変更</DialogTitle>
-            <DialogDescription>
-              {selectedUser?.name}の役割を変更しますか？
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p>
-              現在:{" "}
-              <Badge>
-                {selectedUser?.role === "admin" ? "管理者" : "ユーザー"}
-              </Badge>
-            </p>
-            <p className="mt-2">
-              変更後:{" "}
-              <Badge>
-                {selectedUser?.role === "admin" ? "ユーザー" : "管理者"}
-              </Badge>
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
-              キャンセル
-            </Button>
-            <Button onClick={onRoleChange} disabled={actionLoading}>
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-              変更
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* パスワード変更ダイアログ */}
       <Dialog open={dialogType === "password"} onOpenChange={handleClose}>
         <DialogContent>
@@ -145,7 +115,9 @@ export function UserDialogs({
               onClick={() => onPasswordChange(newPassword)}
               disabled={actionLoading || newPassword.length < 8}
             >
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               変更
             </Button>
           </DialogFooter>
@@ -166,7 +138,9 @@ export function UserDialogs({
               キャンセル
             </Button>
             <Button onClick={onDisable2FA} disabled={actionLoading}>
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               無効化
             </Button>
           </DialogFooter>
@@ -199,7 +173,9 @@ export function UserDialogs({
               onClick={onBanToggle}
               disabled={actionLoading}
             >
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               {selectedUser?.banned ? "解除" : "停止"}
             </Button>
           </DialogFooter>
@@ -220,7 +196,9 @@ export function UserDialogs({
               キャンセル
             </Button>
             <Button onClick={onRevokeAllSessions} disabled={actionLoading}>
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               取り消し
             </Button>
           </DialogFooter>
@@ -246,7 +224,9 @@ export function UserDialogs({
               onClick={onDeleteUser}
               disabled={actionLoading}
             >
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               削除
             </Button>
           </DialogFooter>
@@ -254,7 +234,13 @@ export function UserDialogs({
       </Dialog>
 
       {/* ユーザー詳細情報変更ダイアログ */}
-      <Dialog open={dialogType === "editInfo"} onOpenChange={handleClose}>
+      <Dialog
+        open={dialogType === "editInfo"}
+        onOpenChange={(open) => {
+          handleEditInfoOpen(open);
+          if (!open) handleClose();
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>ユーザー情報を変更</DialogTitle>
@@ -355,7 +341,9 @@ export function UserDialogs({
               }
               disabled={actionLoading || !editName || !editEmail}
             >
-              {actionLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               更新
             </Button>
           </DialogFooter>

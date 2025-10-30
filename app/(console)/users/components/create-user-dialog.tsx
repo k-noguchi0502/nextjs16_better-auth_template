@@ -12,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -31,27 +31,25 @@ export function CreateUserDialog({
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"user" | "admin">("user");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !email || !password) {
-      setError("すべての項目を入力してください");
+      toast.error("すべての項目を入力してください");
       return;
     }
 
     if (password.length < 8) {
-      setError("パスワードは8文字以上である必要があります");
+      toast.error("パスワードは8文字以上である必要があります");
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
 
       const { admin } = await import("@/lib/auth-client");
-      
+
       const result = await admin.createUser({
         name,
         email,
@@ -60,7 +58,7 @@ export function CreateUserDialog({
       });
 
       if (result.error) {
-        setError(result.error.message || "ユーザーの作成に失敗しました");
+        toast.error(result.error.message || "ユーザーの作成に失敗しました");
         return;
       }
 
@@ -68,7 +66,7 @@ export function CreateUserDialog({
       handleClose();
       onUserCreated();
     } catch (err: any) {
-      setError(err.message || "ユーザーの作成に失敗しました");
+      toast.error(err.message || "ユーザーの作成に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -79,7 +77,6 @@ export function CreateUserDialog({
     setEmail("");
     setPassword("");
     setRole("user");
-    setError("");
     onClose();
   };
 
@@ -95,13 +92,6 @@ export function CreateUserDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="create-name">名前 *</Label>
               <Input

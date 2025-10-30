@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, admin } from "@/lib/auth-client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import {
   UserTable,
   UserDialogs,
@@ -15,7 +16,6 @@ import {
 } from "./components";
 
 type DialogType =
-  | "role"
   | "password"
   | "disable2fa"
   | "ban"
@@ -31,34 +31,31 @@ export default function UsersPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
-    if (!isPending && !session) {
+    if (isPending) return;
+    
+    if (!session) {
       router.push("/login");
       return;
     }
 
-    if (session?.user?.role !== "admin") {
+    if (session.user?.role !== "admin") {
       router.push("/");
       return;
     }
 
-    if (session) {
-      loadUsers();
-    }
-  }, [session, isPending, router]);
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPending, session?.user?.role]);
 
   const loadUsers = async () => {
     try {
-      setLoading(true);
       const result = await admin.listUsers({
         query: {
           limit: 100,
@@ -70,8 +67,6 @@ export default function UsersPage() {
       }
     } catch (error) {
       console.error("Failed to load users:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -80,43 +75,20 @@ export default function UsersPage() {
     setDialogType(action as DialogType);
   };
 
-  const handleRoleChange = async () => {
-    if (!selectedUser) return;
-    try {
-      setActionLoading(true);
-      setError("");
-      const newRole = selectedUser.role === "admin" ? "user" : "admin";
-      await admin.setRole({
-        userId: selectedUser.id,
-        role: newRole,
-      });
-      setSuccess(
-        `役割を${newRole === "admin" ? "管理者" : "ユーザー"}に変更しました`
-      );
-      await loadUsers();
-      closeDialog();
-    } catch (err) {
-      setError("役割の変更に失敗しました");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handlePasswordChange = async (password: string) => {
     if (!selectedUser || !password) return;
     try {
       setActionLoading(true);
-      setError("");
 
       await admin.setUserPassword({
         userId: selectedUser.id,
         newPassword: password,
       });
 
-      setSuccess("パスワードを変更しました");
+      toast.success("パスワードを変更しました");
       closeDialog();
     } catch (err) {
-      setError("パスワードの変更に失敗しました");
+      toast.error("パスワードの変更に失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -126,14 +98,13 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
 
       // Better Auth admin pluginには2FA無効化機能がないため、
       // カスタムAPIエンドポイントを実装する必要があります
-      setError("2FA無効化機能は現在利用できません");
+      toast.error("2FA無効化機能は現在利用できません");
       closeDialog();
     } catch (err) {
-      setError("二段階認証の無効化に失敗しました");
+      toast.error("二段階認証の無効化に失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -143,21 +114,20 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
       if (selectedUser.banned) {
         await admin.unbanUser({ userId: selectedUser.id });
-        setSuccess("アカウントの停止を解除しました");
+        toast.success("アカウントの停止を解除しました");
       } else {
         await admin.banUser({
           userId: selectedUser.id,
           banReason: "管理者により停止されました",
         });
-        setSuccess("アカウントを停止しました");
+        toast.success("アカウントを停止しました");
       }
       await loadUsers();
       closeDialog();
     } catch (err) {
-      setError("操作に失敗しました");
+      toast.error("操作に失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -167,14 +137,13 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
       await admin.revokeUserSessions({
         userId: selectedUser.id,
       });
-      setSuccess("すべてのセッションを取り消しました");
+      toast.success("すべてのセッションを取り消しました");
       closeDialog();
     } catch (err) {
-      setError("セッションの取り消しに失敗しました");
+      toast.error("セッションの取り消しに失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -184,13 +153,12 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
       const result = await admin.impersonateUser({
         userId: selectedUser.id,
       });
 
       if (result.error) {
-        setError("偽装ログインに失敗しました");
+        toast.error("偽装ログインに失敗しました");
         setActionLoading(false);
         return;
       }
@@ -198,7 +166,7 @@ export default function UsersPage() {
       // 成功したらコンソールページにリダイレクト
       window.location.href = "/";
     } catch (err: any) {
-      setError(err.message || "偽装ログインに失敗しました");
+      toast.error(err.message || "偽装ログインに失敗しました");
       setActionLoading(false);
     }
   };
@@ -207,15 +175,14 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
       await admin.removeUser({
         userId: selectedUser.id,
       });
-      setSuccess("ユーザーを削除しました");
+      toast.success("ユーザーを削除しました");
       await loadUsers();
       closeDialog();
     } catch (err) {
-      setError("ユーザーの削除に失敗しました");
+      toast.error("ユーザーの削除に失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -230,7 +197,6 @@ export default function UsersPage() {
     if (!selectedUser) return;
     try {
       setActionLoading(true);
-      setError("");
 
       // ロール変更
       if (data.role !== selectedUser.role) {
@@ -266,11 +232,11 @@ export default function UsersPage() {
         });
       }
 
-      setSuccess("ユーザー情報を更新しました");
+      toast.success("ユーザー情報を更新しました");
       await loadUsers();
       closeDialog();
     } catch (err) {
-      setError("ユーザー情報の更新に失敗しました");
+      toast.error("ユーザー情報の更新に失敗しました");
     } finally {
       setActionLoading(false);
     }
@@ -282,21 +248,13 @@ export default function UsersPage() {
   };
 
   const handleSessionRevoked = () => {
-    setSuccess("セッションを取り消しました");
+    toast.success("セッションを取り消しました");
   };
 
   const handleUserCreated = async () => {
-    setSuccess("ユーザーを作成しました");
+    toast.success("ユーザーを作成しました");
     await loadUsers();
   };
-
-  if (isPending || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="size-8 animate-spin" />
-      </div>
-    );
-  }
 
   if (session?.user?.role !== "admin") {
     return (
@@ -313,20 +271,6 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="size-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="mb-4 border-green-200 bg-green-50 text-green-900">
-          <CheckCircle className="size-4" />
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
       <UserTable
         users={users}
         currentUserId={session?.user?.id || ""}
@@ -340,7 +284,6 @@ export default function UsersPage() {
         actionLoading={actionLoading}
         isSelf={!!isSelf(selectedUser)}
         onClose={closeDialog}
-        onRoleChange={handleRoleChange}
         onPasswordChange={handlePasswordChange}
         onDisable2FA={handleDisable2FA}
         onBanToggle={handleBanToggle}

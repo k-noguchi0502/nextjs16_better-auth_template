@@ -13,16 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   User,
   Key,
   Shield,
-  AlertCircle,
-  CheckCircle,
   Lock,
 } from "lucide-react";
+import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import {
   useSession,
@@ -38,37 +36,33 @@ interface UserSettingsDialogProps {
 
 export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
   const { data: session } = useSession();
-  
+
   // 名前変更
   const [name, setName] = useState(session?.user?.name || "");
-  
+
   // パスワード変更
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   // 2FA
   const [totpUri, setTotpUri] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [twoFactorPassword, setTwoFactorPassword] = useState("");
   const [showQR, setShowQR] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const handleUpdateName = async () => {
     try {
       setLoading(true);
-      setError("");
-      setSuccess("");
-      
+
       // Better Auth APIを使用して名前を更新
       // TODO: 実装
-      
-      setSuccess("名前を更新しました");
+
+      toast.success("名前を更新しました");
     } catch (err) {
-      setError("名前の更新に失敗しました");
+      toast.error("名前の更新に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -77,30 +71,28 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
   const handleChangePassword = async () => {
     try {
       setLoading(true);
-      setError("");
-      setSuccess("");
-      
+
       if (newPassword !== confirmPassword) {
-        setError("新しいパスワードが一致しません");
+        toast.error("新しいパスワードが一致しません");
         setLoading(false);
         return;
       }
-      
+
       if (newPassword.length < 8) {
-        setError("パスワードは8文字以上である必要があります");
+        toast.error("パスワードは8文字以上である必要があります");
         setLoading(false);
         return;
       }
-      
+
       // Better Auth APIを使用してパスワードを変更
       // TODO: 実装
-      
-      setSuccess("パスワードを変更しました");
+
+      toast.success("パスワードを変更しました");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError("パスワードの変更に失敗しました");
+      toast.error("パスワードの変更に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -109,15 +101,13 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
   const handleEnable2FA = async () => {
     try {
       setLoading(true);
-      setError("");
-      setSuccess("");
 
       const result = await getTotpUri({
         password: twoFactorPassword,
       });
 
       if (result.error) {
-        setError(result.error.message || "2FAの有効化に失敗しました");
+        toast.error(result.error.message || "2FAの有効化に失敗しました");
         setLoading(false);
         return;
       }
@@ -127,7 +117,7 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
         setShowQR(true);
       }
     } catch (err) {
-      setError("エラーが発生しました");
+      toast.error("エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -136,25 +126,24 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
   const handleVerifyAndEnable = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const result = await enableTwoFactor({
         password: twoFactorPassword,
       });
 
       if (result.error) {
-        setError(result.error.message || "認証コードが正しくありません");
+        toast.error(result.error.message || "認証コードが正しくありません");
         setLoading(false);
         return;
       }
 
-      setSuccess("二段階認証が有効になりました");
+      toast.success("二段階認証が有効になりました");
       setShowQR(false);
       setTotpCode("");
       setTwoFactorPassword("");
       window.location.reload();
     } catch (err) {
-      setError("エラーが発生しました");
+      toast.error("エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -163,23 +152,22 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
   const handleDisable2FA = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const result = await disableTwoFactor({
         password: twoFactorPassword,
       });
 
       if (result.error) {
-        setError(result.error.message || "2FAの無効化に失敗しました");
+        toast.error(result.error.message || "2FAの無効化に失敗しました");
         setLoading(false);
         return;
       }
 
-      setSuccess("二段階認証が無効になりました");
+      toast.success("二段階認証が無効になりました");
       setTwoFactorPassword("");
       window.location.reload();
     } catch (err) {
-      setError("エラーが発生しました");
+      toast.error("エラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -196,20 +184,6 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
             プロフィール、パスワード、セキュリティ設定を管理
           </DialogDescription>
         </DialogHeader>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="size-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="border-green-200 bg-green-50 text-green-900">
-            <CheckCircle className="size-4" />
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
 
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -322,11 +296,7 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
           <TabsContent value="security" className="space-y-4 mt-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                {is2FAEnabled ? (
-                  <CheckCircle className="size-5 text-green-600" />
-                ) : (
-                  <AlertCircle className="size-5 text-yellow-600" />
-                )}
+                <Shield className="size-5 text-primary" />
                 <div>
                   <p className="font-medium flex items-center gap-2">
                     <Lock className="size-4" />
@@ -388,7 +358,9 @@ export function UserSettingsDialog({ open, onClose }: UserSettingsDialogProps) {
                     onClick={handleVerifyAndEnable}
                     disabled={loading || totpCode.length !== 6}
                   >
-                    {loading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {loading && (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    )}
                     確認して有効化
                   </Button>
                   <Button

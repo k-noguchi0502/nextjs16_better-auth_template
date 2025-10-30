@@ -1,6 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useSession } from "@/lib/auth-client";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -16,6 +18,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { ConsoleLoading } from "./components";
 
 // パスとラベルのマッピング
 const pathLabels: Record<string, string> = {
@@ -29,6 +32,17 @@ export default function ConsoleLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (isPending) return;
+
+    if (!session) {
+      router.push("/login");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPending]);
 
   // パスからパンくずリストを生成
   const generateBreadcrumbs = () => {
@@ -95,7 +109,9 @@ export default function ConsoleLayout({
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          {isPending || !session ? <ConsoleLoading /> : children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

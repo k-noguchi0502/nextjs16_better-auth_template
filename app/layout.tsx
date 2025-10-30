@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "../styles/globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );
